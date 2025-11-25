@@ -215,8 +215,8 @@ void checkMode() {
       Serial.println("Mid color mode");
 
       // reads the amplitude of the line in
-      if (peak2.available() == true) {
-        int peak = peak2.read() * 50.0;
+      if (peak1.available() == true) {
+        int peak = peak1.read() * 50.0;
 
         // dispaly the mid color on the pixels
         for (int i = 0; i < peak; i++) {
@@ -236,8 +236,8 @@ void checkMode() {
       Serial.println("High color mode");
 
       // reads the amplitude of the line in
-      if (peak3.available() == true) {
-        int peak = peak3.read() * 50.0;
+      if (peak1.available() == true) {
+        int peak = peak1.read() * 50.0;
 
         // dispaly the high color on the pixels
         for (int i = 0; i < peak; i++) {
