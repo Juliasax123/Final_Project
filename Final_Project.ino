@@ -1,3 +1,4 @@
+// below is the code from the online system design tool
 #include <Audio.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -98,7 +99,7 @@ void setup() {
   // set the neopixels to output
   pinMode(pixelPin, OUTPUT);
 
-  // ADD COMMENT
+  // initialize / reset the neopixels
   neopixel.begin();
   neopixel.clear();
   neopixel.show();
@@ -107,9 +108,9 @@ void setup() {
   Serial.begin(9600);
 
   // set the frequencies for the lowpass, bandpass, and highpass filters
-  filter1.frequency(100);
+  filter1.frequency(299);
   filter2.frequency(1999);
-  filter3.frequency(20000);
+  filter3.frequency(2000);
 }
 
 // set up a function to rotate between the button's settings (filter mode, bass color, mid color, and high color)
@@ -273,7 +274,10 @@ void loop() {
   // if the switch is on...
   if (switchState == HIGH) {
 
-    // the filter and color settings are applied
+    // reset the button menu to 0 so everytime the switch is turned on it enters filter mode
+    buttonMenu = 0;
+
+    // apply the filter and color settings
     checkButton();
     checkMode();
 
