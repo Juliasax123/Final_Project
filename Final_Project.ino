@@ -6,27 +6,29 @@
 #include <SerialFlash.h>
 
 // GUItool: begin automatically generated code
-AudioInputI2S i2s1;                //xy=176,165
-AudioFilterStateVariable filter3;  //xy=293,371
-AudioFilterStateVariable filter2;  //xy=313,275
-AudioFilterStateVariable filter1;  //xy=319,149
-AudioAnalyzePeak peak3;            //xy=431,452
-AudioAnalyzePeak peak2;            //xy=460,268
-AudioAnalyzePeak peak1;            //xy=503,68
-AudioMixer4 mixer1;                //xy=640,206
-AudioOutputI2S i2s2;               //xy=812,215
-AudioConnection patchCord1(i2s1, 0, filter1, 0);
-AudioConnection patchCord2(i2s1, 0, filter2, 0);
-AudioConnection patchCord3(i2s1, 0, filter3, 0);
-AudioConnection patchCord4(filter3, 2, peak3, 0);
-AudioConnection patchCord5(filter3, 2, mixer1, 2);
-AudioConnection patchCord6(filter2, 1, peak2, 0);
-AudioConnection patchCord7(filter2, 1, mixer1, 1);
-AudioConnection patchCord8(filter1, 0, peak1, 0);
-AudioConnection patchCord9(filter1, 0, mixer1, 0);
-AudioConnection patchCord10(mixer1, 0, i2s2, 0);
-AudioConnection patchCord11(mixer1, 0, i2s2, 1);
-AudioControlSGTL5000 sgtl5000_1;  //xy=362,51
+AudioInputI2S            i2s1;           //xy=176,165
+AudioFilterStateVariable filter3;        //xy=293,371
+AudioFilterStateVariable filter1;        //xy=327,112
+AudioAnalyzePeak         peak4;          //xy=359,174
+AudioFilterStateVariable filter2;        //xy=385,259
+AudioAnalyzePeak         peak3;          //xy=431,452
+AudioAnalyzePeak         peak1;          //xy=503,68
+AudioAnalyzePeak         peak2;          //xy=585,336
+AudioMixer4              mixer1;         //xy=640,206
+AudioOutputI2S           i2s2;           //xy=812,215
+AudioConnection          patchCord1(i2s1, 0, filter1, 0);
+AudioConnection          patchCord2(i2s1, 0, filter2, 0);
+AudioConnection          patchCord3(i2s1, 0, filter3, 0);
+AudioConnection          patchCord4(i2s1, 0, peak4, 0);
+AudioConnection          patchCord5(filter3, 2, peak3, 0);
+AudioConnection          patchCord6(filter3, 2, mixer1, 2);
+AudioConnection          patchCord7(filter1, 0, peak1, 0);
+AudioConnection          patchCord8(filter1, 0, mixer1, 0);
+AudioConnection          patchCord9(filter2, 1, peak2, 0);
+AudioConnection          patchCord10(filter2, 1, mixer1, 1);
+AudioConnection          patchCord11(mixer1, 0, i2s2, 0);
+AudioConnection          patchCord12(mixer1, 0, i2s2, 1);
+AudioControlSGTL5000     sgtl5000_1;     //xy=280,46
 // GUItool: end automatically generated code
 
 // include the neopixel library
@@ -87,7 +89,7 @@ void setup() {
   sgtl5000_1.enable();
   sgtl5000_1.volume(0.1);
   sgtl5000_1.inputSelect(AUDIO_INPUT_LINEIN);
-  sgtl5000_1.lineInLevel(8);
+  sgtl5000_1.lineInLevel(5);
 
   // set the switch, button, and pots to inputs
   pinMode(switchPin, INPUT);
@@ -189,11 +191,11 @@ void checkMode() {
       bassColor[2] = mapPot3Color;
 
       // print out "Bass color mode" to check if it is working
-      Serial.println("Bass color mode");
+      //Serial.println("Bass color mode");
 
       // reads the amplitude of the line in
       if (peak1.available() == true) {
-        int peak = peak1.read() * 50.0;
+        float peak = peak1.read() * 50.0;
 
         // dispaly the bass color on the pixels
         for (int i = 0; i < peak; i++) {
@@ -215,8 +217,8 @@ void checkMode() {
       Serial.println("Mid color mode");
 
       // reads the amplitude of the line in
-      if (peak1.available() == true) {
-        int peak = peak1.read() * 50.0;
+      if (peak2.available() == true) {
+        float peak = peak2.read() * 50.0;
 
         // dispaly the mid color on the pixels
         for (int i = 0; i < peak; i++) {
@@ -236,8 +238,8 @@ void checkMode() {
       Serial.println("High color mode");
 
       // reads the amplitude of the line in
-      if (peak1.available() == true) {
-        int peak = peak1.read() * 50.0;
+      if (peak3.available() == true) {
+        float peak = peak3.read() * 50.0;
 
         // dispaly the high color on the pixels
         for (int i = 0; i < peak; i++) {
@@ -258,8 +260,8 @@ void showColors() {
   }
 
   // reads the amplitude of the line in
-  if (peak1.available() == true) {
-    int peak = peak1.read() * 50.0;
+  if (peak4.available() == true) {
+    float peak = peak4.read() * 50.0;
 
     // dispaly the overall color on the pixels
     for (int i = 0; i < peak; i++) {
@@ -316,8 +318,8 @@ void loop() {
       if (buttonMenu == 1) {
 
         // reads the amplitude of the line in
-        if (peak1.available() == true) {
-          int peak = peak1.read() * 50.0;
+        if (peak4.available() == true) {
+          float peak = peak4.read() * 50.0;
 
           // dispaly the color on the pixels
           for (int i = 0; i < peak; i++) {
