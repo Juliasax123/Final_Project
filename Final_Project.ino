@@ -274,9 +274,6 @@ void loop() {
   // if the switch is on...
   if (switchState == HIGH) {
 
-    // reset the button menu to 0 so everytime the switch is turned on it enters filter mode
-    buttonMenu = 0;
-
     // apply the filter and color settings
     checkButton();
     checkMode();
@@ -313,5 +310,8 @@ void loop() {
 
     // print out "Switch off" to check if it is working
     Serial.println("Switch off");
+
+    // reset the button menu to 0 so everytime the switch is turned back on it enters filter mode
+    buttonMenu = 0;
   }
 }
