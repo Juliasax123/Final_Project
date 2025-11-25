@@ -51,7 +51,7 @@ int pot3Pin = A13;
 
 // set up a variable to set the number of neopixels
 int numPixels = 50;
-int pixelPin = 29;
+int pixelPin = 33;
 
 // set up the neopixels
 Adafruit_NeoPixel neopixel = Adafruit_NeoPixel(numPixels, pixelPin, NEO_GRB);
@@ -66,7 +66,7 @@ int pot1Color;
 int pot2Color;
 int pot3Color;
 
-// set up variables map the color variables to be within 0 - 255
+// set up variables that map the color variables to be within 0 - 255
 int mapPot1Color;
 int mapPot2Color;
 int mapPot3Color;
@@ -81,7 +81,7 @@ int outputColor[3];
 
 void setup() {
 
-  // set up the audio board
+  // set up the audio board and serial to check everything is working
   AudioMemory(500);
   Serial.begin(9600);
   sgtl5000_1.enable();
@@ -104,13 +104,26 @@ void setup() {
   neopixel.clear();
   neopixel.show();
 
-  // set up serial to be able to see the things being printed
-  Serial.begin(9600);
-
   // set the frequencies for the lowpass, bandpass, and highpass filters
   filter1.frequency(299);
   filter2.frequency(1999);
   filter3.frequency(2000);
+}
+
+// create a function for the filter/filter mode
+void filter() {
+  // read in the values for the volume and set the volume variables to those values
+  bassVol = analogRead(pot1Pin);
+  midVol = analogRead(pot2Pin);
+  highVol = analogRead(pot3Pin);
+
+  // sets the level of the bass, mids, and highs
+  mixer1.gain(0, bassVol);
+  mixer1.gain(1, midVol);
+  mixer1.gain(2, highVol);
+
+  // print out "Filter mode" to check if it is working
+  Serial.println("Filter mode");
 }
 
 // set up a function to rotate between the button's settings (filter mode, bass color, mid color, and high color)
@@ -151,18 +164,8 @@ void checkMode() {
   // if buttonMenu is 0 enter filter mode
   if (buttonMenu == 0) {
 
-    // read in the values for the volume and set the volume variables to those values
-    bassVol = analogRead(pot1Pin);
-    midVol = analogRead(pot2Pin);
-    highVol = analogRead(pot3Pin);
-
-    // sets the level of the bass, mids, and highs
-    mixer1.gain(0, bassVol);
-    mixer1.gain(1, midVol);
-    mixer1.gain(2, highVol);
-
-    // print out "Filter mode" to check if it is working
-    Serial.println("Filter mode");
+    // call the filter function to enter filter mode
+    filter();
   }
 
   else {
@@ -212,14 +215,14 @@ void checkMode() {
       Serial.println("Mid color mode");
 
       // reads the amplitude of the line in
-      if (peak1.available() == true) {
-        int peak = peak1.read() * 50.0;
+      if (peak2.available() == true) {
+        int peak = peak2.read() * 50.0;
 
         // dispaly the mid color on the pixels
         for (int i = 0; i < peak; i++) {
           neopixel.setPixelColor(i, mapPot1Color, mapPot2Color, mapPot3Color);
-          neopixel.show();
-        }
+          neopixel.show(); 
+        }       
       }
     }
 
@@ -233,8 +236,8 @@ void checkMode() {
       Serial.println("High color mode");
 
       // reads the amplitude of the line in
-      if (peak1.available() == true) {
-        int peak = peak1.read() * 50.0;
+      if (peak3.available() == true) {
+        int peak = peak3.read() * 50.0;
 
         // dispaly the high color on the pixels
         for (int i = 0; i < peak; i++) {
@@ -287,31 +290,45 @@ void loop() {
   // if the switch is off display a steady color set by the pots
   else {
 
-    // read in the values for the colors and set the pot color variables to those values
-    pot1Color = analogRead(pot1Pin);
-    pot2Color = analogRead(pot2Pin);
-    pot3Color = analogRead(pot3Pin);
+    // check the button settings
+    checkButton();
 
-    // map the color variables to be within 0 - 255 for colors
-    mapPot1Color = map(pot1Color, 0, 1023, 0, 255);
-    mapPot2Color = map(pot2Color, 0, 1023, 0, 255);
-    mapPot3Color = map(pot3Color, 0, 1023, 0, 255);
+    // if buttonMenu is 0 enter filter mode
+    if (buttonMenu == 0) {
 
-    // reads the amplitude of the line in
-    if (peak1.available() == true) {
-      int peak = peak1.read() * 50.0;
-
-      // dispaly the color on the pixels
-      for (int i = 0; i < peak; i++) {
-        neopixel.setPixelColor(i, mapPot1Color, mapPot2Color, mapPot3Color);
-        neopixel.show();
-      }
+      // call the filter function to enter filter mode
+      filter();
     }
 
-    // print out "Switch off" to check if it is working
-    Serial.println("Switch off");
+    else {
 
-    // reset the button menu to 0 so everytime the switch is turned back on it enters filter mode
-    buttonMenu = 0;
+      // read in the values for the colors and set the pot color variables to those values
+      pot1Color = analogRead(pot1Pin);
+      pot2Color = analogRead(pot2Pin);
+      pot3Color = analogRead(pot3Pin);
+
+      // map the color variables to be within 0 - 255 for colors
+      mapPot1Color = map(pot1Color, 0, 1023, 0, 255);
+      mapPot2Color = map(pot2Color, 0, 1023, 0, 255);
+      mapPot3Color = map(pot3Color, 0, 1023, 0, 255);
+
+      // if buttonMenu is 1 enter color selection mode
+      if (buttonMenu == 1) {
+
+        // reads the amplitude of the line in
+        if (peak1.available() == true) {
+          int peak = peak1.read() * 50.0;
+
+          // dispaly the color on the pixels
+          for (int i = 0; i < peak; i++) {
+            neopixel.setPixelColor(i, mapPot1Color, mapPot2Color, mapPot3Color);
+            neopixel.show();
+          }
+        }
+
+        // print out "Color Selection" to check if it is working
+        Serial.println("Color Selection");
+      }
+    }
   }
 }
