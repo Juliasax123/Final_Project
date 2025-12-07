@@ -6,29 +6,29 @@
 #include <SerialFlash.h>
 
 // GUItool: begin automatically generated code
-AudioInputI2S            i2s1;           //xy=176,165
-AudioFilterStateVariable filter3;        //xy=293,371
-AudioFilterStateVariable filter1;        //xy=327,112
-AudioAnalyzePeak         peak4;          //xy=359,174
-AudioFilterStateVariable filter2;        //xy=385,259
-AudioAnalyzePeak         peak3;          //xy=431,452
-AudioAnalyzePeak         peak1;          //xy=503,68
-AudioAnalyzePeak         peak2;          //xy=585,336
-AudioMixer4              mixer1;         //xy=640,206
-AudioOutputI2S           i2s2;           //xy=812,215
-AudioConnection          patchCord1(i2s1, 0, filter1, 0);
-AudioConnection          patchCord2(i2s1, 0, filter2, 0);
-AudioConnection          patchCord3(i2s1, 0, filter3, 0);
-AudioConnection          patchCord4(i2s1, 0, peak4, 0);
-AudioConnection          patchCord5(filter3, 2, peak3, 0);
-AudioConnection          patchCord6(filter3, 2, mixer1, 2);
-AudioConnection          patchCord7(filter1, 0, peak1, 0);
-AudioConnection          patchCord8(filter1, 0, mixer1, 0);
-AudioConnection          patchCord9(filter2, 1, peak2, 0);
-AudioConnection          patchCord10(filter2, 1, mixer1, 1);
-AudioConnection          patchCord11(mixer1, 0, i2s2, 0);
-AudioConnection          patchCord12(mixer1, 0, i2s2, 1);
-AudioControlSGTL5000     sgtl5000_1;     //xy=280,46
+AudioInputI2S i2s1;                //xy=176,165
+AudioFilterStateVariable filter3;  //xy=293,371
+AudioFilterStateVariable filter1;  //xy=327,112
+AudioAnalyzePeak peak4;            //xy=359,174
+AudioFilterStateVariable filter2;  //xy=385,259
+AudioAnalyzePeak peak3;            //xy=431,452
+AudioAnalyzePeak peak1;            //xy=503,68
+AudioAnalyzePeak peak2;            //xy=585,336
+AudioMixer4 mixer1;                //xy=640,206
+AudioOutputI2S i2s2;               //xy=812,215
+AudioConnection patchCord1(i2s1, 0, filter1, 0);
+AudioConnection patchCord2(i2s1, 0, filter2, 0);
+AudioConnection patchCord3(i2s1, 0, filter3, 0);
+AudioConnection patchCord4(i2s1, 0, peak4, 0);
+AudioConnection patchCord5(filter3, 2, peak3, 0);
+AudioConnection patchCord6(filter3, 2, mixer1, 2);
+AudioConnection patchCord7(filter1, 0, peak1, 0);
+AudioConnection patchCord8(filter1, 0, mixer1, 0);
+AudioConnection patchCord9(filter2, 1, peak2, 0);
+AudioConnection patchCord10(filter2, 1, mixer1, 1);
+AudioConnection patchCord11(mixer1, 0, i2s2, 0);
+AudioConnection patchCord12(mixer1, 0, i2s2, 1);
+AudioControlSGTL5000 sgtl5000_1;  //xy=280,46
 // GUItool: end automatically generated code
 
 // include the neopixel library
@@ -43,25 +43,30 @@ int buttonPin = 24;
 bool lastButtonState;
 bool buttonState;
 
-// set up a menu to rotate between filter mode, bass color select, mid color select, and high color select
+// set up a menu varaible to rotate between filter mode, bass color select, mid color select, and high color select
 int buttonMenu = 0;
 
-// set up the three pots
+// set up the three pots to control volume and color depending on the mode
 int pot1Pin = A11;
 int pot2Pin = A12;
 int pot3Pin = A13;
 
-// set up a variable to set the number of neopixels
+// set up a variable to set the number of neopixels and the pin the pixels are on
 int numPixels = 50;
 int pixelPin = 33;
 
 // set up the neopixels
 Adafruit_NeoPixel neopixel = Adafruit_NeoPixel(numPixels, pixelPin, NEO_GRB);
 
-// set up volume variables to create the boosting/attenuating
+// set up volume variables to create the boosting / attenuating
 float bassVol;
 float midVol;
 float highVol;
+
+// map the volume variables to get the gain to bet between 0 and 1
+float mapBassVol;
+float mapMidVol;
+float mapHighVol;
 
 // set up the variables to use in the color mixes for bass, mids, and highs
 int pot1Color;
@@ -74,20 +79,25 @@ int mapPot2Color;
 int mapPot3Color;
 
 // set up arrays to have the color mixes for bass, mids, and highs to put into the overall color mix
-int bassColor[3];
-int midColor[3];
-int highColor[3];
+int bassColor[3] = { 255, 0, 0 };
+int midColor[3] = { 0, 255, 150 };
+int highColor[3] = { 166, 0, 255 };
 
 // set up a variable for the overall color
 int outputColor[3];
 
+// set up variables to create the ratios for the bass, mids, and highs in the overall colors
+float bassOffset;
+float midOffset;
+float highOffset;
+
 void setup() {
 
   // set up the audio board and serial to check everything is working
-  AudioMemory(500);
+  AudioMemory(20);
   Serial.begin(9600);
   sgtl5000_1.enable();
-  sgtl5000_1.volume(0.1);
+  sgtl5000_1.volume(0.5);
   sgtl5000_1.inputSelect(AUDIO_INPUT_LINEIN);
   sgtl5000_1.lineInLevel(5);
 
@@ -112,17 +122,23 @@ void setup() {
   filter3.frequency(2000);
 }
 
-// create a function for the filter/filter mode
+// create a function for the filter mode
 void filter() {
+
   // read in the values for the volume and set the volume variables to those values
   bassVol = analogRead(pot1Pin);
   midVol = analogRead(pot2Pin);
   highVol = analogRead(pot3Pin);
 
-  // sets the level of the bass, mids, and highs
-  mixer1.gain(0, bassVol);
-  mixer1.gain(1, midVol);
-  mixer1.gain(2, highVol);
+  // map the volume variables to be between 0 and 1
+  mapBassVol = map(bassVol, 0, 1023, 0.0, 1.0);
+  mapMidVol = map(midVol, 0, 1023, 0.0, 1.0);
+  mapHighVol = map(highVol, 0, 1023, 0.0, 1.0);
+
+  // sets the levels of the bass, mids, and highs
+  mixer1.gain(0, mapBassVol);
+  mixer1.gain(1, mapMidVol);
+  mixer1.gain(2, mapHighVol);
 
   // print out "Filter mode" to check if it is working
   Serial.println("Filter mode");
@@ -156,7 +172,7 @@ void checkButton() {
     delay(5);
   }
 
-  // set lastButtonState to what buttonState jsut was to get an accurate reading for the next loop
+  // set lastButtonState to what buttonState just was to get an accurate reading for the next loop
   lastButtonState = buttonState;
 }
 
@@ -191,14 +207,13 @@ void checkMode() {
       bassColor[2] = mapPot3Color;
 
       // print out "Bass color mode" to check if it is working
-      //Serial.println("Bass color mode");
+      Serial.println("Bass color mode");
 
       // reads the amplitude of the line in
       if (peak1.available() == true) {
-        float peak = peak1.read() * 50.0;
 
         // dispaly the bass color on the pixels
-        for (int i = 0; i < peak; i++) {
+        for (int i = 0; i < 50; i++) {
           neopixel.setPixelColor(i, mapPot1Color, mapPot2Color, mapPot3Color);
           neopixel.show();
         }
@@ -218,13 +233,12 @@ void checkMode() {
 
       // reads the amplitude of the line in
       if (peak2.available() == true) {
-        float peak = peak2.read() * 50.0;
 
         // dispaly the mid color on the pixels
-        for (int i = 0; i < peak; i++) {
+        for (int i = 0; i < 50; i++) {
           neopixel.setPixelColor(i, mapPot1Color, mapPot2Color, mapPot3Color);
-          neopixel.show(); 
-        }       
+          neopixel.show();
+        }
       }
     }
 
@@ -239,10 +253,9 @@ void checkMode() {
 
       // reads the amplitude of the line in
       if (peak3.available() == true) {
-        float peak = peak3.read() * 50.0;
 
         // dispaly the high color on the pixels
-        for (int i = 0; i < peak; i++) {
+        for (int i = 0; i < 50; i++) {
           neopixel.setPixelColor(i, mapPot1Color, mapPot2Color, mapPot3Color);
           neopixel.show();
         }
@@ -256,15 +269,21 @@ void showColors() {
 
   // mix the colors together taking their volumes into account
   for (int i = 0; i < 3; i++) {
-    outputColor[i] = (bassColor[i]) + (midColor[i]) + (highColor[i]);
+
+    // set up the variables to have the ratios take the volume and the peak data into account
+    bassOffset = mapBassVol * peak1.read();
+    midOffset = mapMidVol * peak2.read();
+    highOffset = mapHighVol * peak3.read();
+
+    // multiply the colors by the ratio settings from above
+    outputColor[i] = (bassColor[i] * bassOffset) + (midColor[i] * midOffset) + (highColor[i] * highOffset);
   }
 
   // reads the amplitude of the line in
   if (peak4.available() == true) {
-    float peak = peak4.read() * 50.0;
 
-    // dispaly the overall color on the pixels
-    for (int i = 0; i < peak; i++) {
+    // dispaly the overall color on the pixelsm
+    for (int i = 0; i < 50; i++) {
       neopixel.setPixelColor(i, outputColor[0], outputColor[1], outputColor[2]);
       neopixel.show();
     }
@@ -289,7 +308,7 @@ void loop() {
     }
   }
 
-  // if the switch is off display a steady color set by the pots
+  // if the switch is off...
   else {
 
     // check the button settings
@@ -317,19 +336,48 @@ void loop() {
       // if buttonMenu is 1 enter color selection mode
       if (buttonMenu == 1) {
 
-        // reads the amplitude of the line in
-        if (peak4.available() == true) {
-          float peak = peak4.read() * 50.0;
-
-          // dispaly the color on the pixels
-          for (int i = 0; i < peak; i++) {
-            neopixel.setPixelColor(i, mapPot1Color, mapPot2Color, mapPot3Color);
-            neopixel.show();
-          }
+        // dispaly the color on the pixels
+        for (int i = 0; i < 50; i++) {
+          neopixel.setPixelColor(i, mapPot1Color, mapPot2Color, mapPot3Color);
+          neopixel.show();
         }
 
         // print out "Color Selection" to check if it is working
         Serial.println("Color Selection");
+      }
+
+      // if buttonMenu is 2 enter color wipe mode
+      if (buttonMenu == 2) {
+
+        // do a red color wipe
+        for (int i = 0; i < 50; i++) {
+          neopixel.setPixelColor(i, 255, 0, 0);
+          neopixel.show();
+          delay(10);
+        }
+
+        // do a green color wipe
+        for (int i = 0; i < 50; i++) {
+          neopixel.setPixelColor(i, 0, 255, 0);
+          neopixel.show();
+          delay(10);
+        }
+
+        // print out "Color wipe" to check if it is working
+        Serial.println("Color wipe");
+      }
+
+      // if buttonMenu is 3 enter White mode
+      if (buttonMenu == 3) {
+
+        // dispaly the color on the pixels
+        for (int i = 0; i < 50; i++) {
+          neopixel.setPixelColor(i, 255, 234, 148);
+          neopixel.show();
+        }
+
+        // print out "White mode" to check if it is working
+        Serial.println("White mode");
       }
     }
   }
